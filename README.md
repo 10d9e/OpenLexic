@@ -1,5 +1,5 @@
 # OpenLexic
-OpenLexic is an accessibility tool for Dyslexics
+OpenLexic is an accessibility tool for Dyslexics. It allows users to navigate to any website, read the site with a Dyslexic-friendly font and supplies an interactive read-along mode with a simple double click.
 
 # Installation
 * Download the file open-lexic.html and open in your favorite browser ( tested and developed in Chrome )
