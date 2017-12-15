@@ -1,0 +1,478 @@
+<a href="javascript:(function( window, document, req_version, callback, $, script, done, readystate ){
+  if ( !($ = window.jQuery) || req_version > $.fn.jquery || callback( $ ) ) {
+    script = document.createElement( 'script' );
+    script.type = 'text/javascript';
+    script.src = 'https://ajax.googleapis.com/ajax/libs/jquery/' + req_version + '/jquery.min.js';
+    script.onload = script.onreadystatechange = function() {
+      if ( !done && ( !( readystate = this.readyState )
+        || readystate == 'loaded' || readystate == 'complete' ) ) {
+        
+        callback( ($ = window.jQuery).noConflict(1), done = 1 );
+        
+        $( script ).remove();
+      }
+    };
+    document.documentElement.childNodes[0].appendChild( script );
+  }
+  
+})( window, document, '3.2.1',
+  function( $, L ) {
+    '$:nomunge, L:nomunge';
+    
+     
+     /**
+      CSCIE-3 Final Project
+      Jay Logelin
+
+      OpenLexic version 0.1
+      This is the OpenLexic utility designed to help readers with dyslexia consume web text easier.
+     */
+     			
+     			
+      /* Set to true to see debug statements and turn off speech */
+      /* localStorage.removeItem('openlexic.settings'); */
+      var debug = false;
+      var settings;
+      function loadSettings() {
+        /* Project Technique: Creating and handling a data structure */
+				settings = JSON.parse(window.localStorage.getItem('openlexic.settings'));
+        if (!settings){
+						settings = {
+                'useDyslexicFont': true,
+                'autoscroll': true,
+                'increaseReadingFontSize': false,
+                'minimumFontSize': 14,
+                'backgroundReadingSelectionColor': '#fffda3',
+                'textReadingSelectionColor': 'black',
+                'voiceIndex': 67,
+            };
+				}
+        console.log(settings);
+			}
+
+      /*
+        Save settings object to local storage for later retrieval.
+      */
+      function saveSettings() {
+      		window.localStorage.setItem('openlexic.settings', JSON.stringify(settings));
+          console.log(JSON.stringify(settings));
+      }
+      
+      /* Load Settings from localStorage or set up the default values */
+      loadSettings();
+      
+     
+        /* Load the OpenDyslexic3 font via jQuery */
+        $('head').prepend('<style type=\'text/css\'>' + 
+                                        '@font-face {\n' +
+                                            '\tfont-family: \'OpenDyslexic3\';\n' + 
+                                            '\tsrc: local(\'OpenDyslexic3\'), url(\'https://cdn.jsdelivr.net/gh/antijingoist/open-dyslexic@20160623-Stable/ttf/OpenDyslexic3-Regular.ttf\') format(\'opentype\');\n' + 
+                                        '}\n' + 
+                                            '\tp.myClass {\n' + 
+                                            '\tfont-family: myFont !important;\n' + 
+                                        '}\n' + 
+                                    '</style>');
+      if(settings.useDyslexicFont) {
+        /* Apply OpenDyslexic3 font and spacing to all elements */
+        $('body *').not('script').css('font-family', 'OpenDyslexic3');
+        $('body *').not('script').css('line-height', '200%');
+      }
+      
+      /* Make sure the minimum font size is set */
+      function updateMinimumFontSize(){
+        $('body *').not('.ignore').each( function () {
+              if (parseInt($(this).css('fontSize')) < settings.minimumFontSize) {
+                  $(this).css('font-size', settings.minimumFontSize+'px');   
+              }
+        });
+      }
+      
+      updateMinimumFontSize();
+      
+      /* Settings menu START - this is the beginning of the code which injects the OpenLexic settings menu */
+      /* The settingsButton floats in the top left hand corner of the screen and activates the menu when clicked */
+      var settingsButton = $('<a id=\'openlexic-floating-button\'  href=\'javascript:void(0)\'>OpenLexic</a>');
+      settingsButton.css({
+          'text-decoration': 'none',
+          'color': 'black',
+          'opacity': '0.3',
+          'width': '100px',
+          'height': '40px',
+          'font-family': 'OpenDyslexic3',
+          'text-align': 'center',
+          'position':'fixed',
+          'top':'20px',
+          'left':'20px',
+          'z-index': '20000',
+          'background': '#27AE61 no-repeat center 43%',
+          '-webkit-border-radius': '10px',
+          '-moz-border-radius': '10px',
+          'border-radius': '10px'
+        });
+        /* Add the ignore class to tell the OpenLexic engine not to bother processing this item */
+        settingsButton.addClass('ignore');
+        /* On mouseover, increase the opacity of the settings button */
+        settingsButton.mouseover(function() {
+        	$(this).css('opacity', '1');
+        });
+        /* On mouse leave, set the opacity back to 50% */
+        settingsButton.mouseleave(function() {
+        	$(this).css('opacity', '0.5');
+        });
+        /* When the settings button is clicked, open the menu content and hide this button */
+        settingsButton.click(function() {
+        	menuContent.css('width', '280px');
+          $(this).hide();
+        });
+      
+      /* Add the settings button element to the web page */
+      $('body').prepend(settingsButton);
+      
+      /* Create the setting menu container */
+      var menuContent = $('<div id=\'sidenav\' class=\'sidenav\'></div>');
+      menuContent.css({
+      		'height': '100%',
+          'width': '0',
+          'position': 'fixed',
+          'z-index': '9999',
+          'top': '0',
+          'left': '0',
+          'background-color': 'black',
+          'opacity': '0.85',
+          'overflow-x': 'hidden',
+          'transition': '0.2s',
+          'padding-top': '60px',
+          'font-family': 'OpenDyslexic3',
+          'text-align': 'center',
+          'color': 'white'
+      });
+      
+      /* Set the font to use OpenDyslexic3 typeface */
+      menuContent.append($('<h2>OpenLexic Settings</h2><hr>').css({'font-family': 'OpenDyslexic3', 'color': 'white'}));
+      
+      /* Add a close button to the menu */
+      var closeButton = $('<a href=\'javascript:void(0)\' class=\'closebtn\'>×</a>');
+      closeButton.css({
+          'position': 'absolute',
+          'top': '0',
+          'right': '25px',
+          'font-size': '36px',
+          'margin-left': '50px',
+          'padding': '5px',
+          'text-decoration': 'none',
+          'color': '#818181',
+          'display': 'block',
+          'transition': '0.2s'
+       });
+
+      /* When the close button is clicked, shrink the content menu down to 0 and show the floating settings button again */ 
+      closeButton.click(function() {
+        	menuContent.css('width', '0');
+          settingsButton.show();
+        });
+      /* Add the close button to the menu */  
+      menuContent.append(closeButton);
+
+      /* Create the form which will allow users to update settings values */
+      var settingsForm = $('<form id=\'settings-form\'>');
+      settingsForm.css({
+          'color': 'white',
+          'margin-left': '30px',
+          'width': '100%',
+          'font-family': 'OpenDyslexic3',
+          'text-align': 'left',
+          'font-size': '14px',
+          'background-color': 'black'
+      });
+
+      /* Prevent the form from performing a submit */
+      settingsForm.submit(function(e){
+        	e.preventDefault();
+   		});
+      
+      /* Add a button to stop the speech api */
+      var stop = $('<a>Stop Speech</a>');
+
+      /* When clicked, stop the current speechSynthesis and hide this element */
+      /* Project Technique: Capturing and handling events */
+      stop.click(function(){
+          $(this).hide();
+          speechSynthesis.cancel();
+          $('.sentence').css('background-color', '');
+          $('.sentence').css('font-size', '');
+      });
+      /* if the speech api is speaking show the hide button, else hide it */
+      speechSynthesis.speaking ? stop.show() : stop.hide();
+
+      /* Append the stop button to the form */
+      settingsForm.append(stop);
+      
+      /* Add a voices dropdown to select the desired reading voice */
+      var voicesDropdownElement = $('<br><select id=\'voices-dropdown\'>');
+      /* On change, update the settings value appropriately */
+      /* Project Technique: Capturing and handling events */
+      voicesDropdownElement.change(function(){
+          settings.voiceIndex = $(this).val();
+          saveSettings();
+      });
+      /* Append the voices dropdown to the settings form */
+      settingsForm.append(voicesDropdownElement);
+
+      /* Create a checkbox to toggle autoscroll option, and update the settings if changed */
+      settingsForm.append('<br>Autoscroll: ');      
+      var autoscrollElement = $('<input type=\'checkbox\' checked>');
+      autoscrollElement.prop( 'checked', settings.autoscroll );
+      /* on change, update the settings value appropriately */
+      /* Project Technique: Capturing and handling events */
+      autoscrollElement.change(function(){
+      		settings.autoscroll = $(this).prop('checked');
+          saveSettings();
+      });
+      /* Append the autoscroll checkbox to the form */
+      settingsForm.append(autoscrollElement);
+      
+      /* Create a checkbox to toggle increase reading selection font size */
+      settingsForm.append('<br>Increase Read-along Font: ');      
+      var increaseReadingFontSizeElement = $('<input type=\'checkbox\' checked>');
+      increaseReadingFontSizeElement.prop( 'checked', settings.increaseReadingFontSize );
+      /* on change, update the settings value appropriately */
+      /* Project Technique: Capturing and handling events */
+      increaseReadingFontSizeElement.change(function(){
+      		settings.increaseReadingFontSize = $(this).prop('checked');
+          saveSettings();
+      });
+      /* Add the checkbox to the settings form */
+      settingsForm.append(increaseReadingFontSizeElement);
+      
+      /* Create a checkbox to toggle use of OpenDyslexic3 font */
+      settingsForm.append('<br>Use Dyslexic Font: ');      
+      var useDyslexicElement = $('<input type=\'checkbox\' checked>');
+      useDyslexicElement.prop( 'checked', settings.useDyslexicFont );
+      /* on change, update the settings value appropriately */
+      /* Project Technique: Capturing and handling events */
+      useDyslexicElement.change(function(){
+      		 settings.useDyslexicFont = $(this).prop('checked');
+           saveSettings();
+           if(settings.useDyslexicFont) {
+             $('body *').not('.ignore').css('font-family', 'OpenDyslexic3');
+             $('body *').not('.ignore').css('line-height', '200%');
+           } else {
+           	 $('body *').not('.ignore').css('font-family', '');
+             $('body *').not('.ignore').css('line-height', '');
+           }
+      });
+      /* Add the checkbox to the settings form */
+      settingsForm.append(useDyslexicElement);
+      
+
+      /* Create a minimumFontSize number element */
+      settingsForm.append('<br>Minimum Font Size: ');
+      var minimumFontSizeElement = $('<input type=\'number\' min=\'10\' max=\'80\' step=\'2\' >');
+      minimumFontSizeElement.css('font-family', 'OpenDyslexic3');
+      minimumFontSizeElement.css('color', 'white');
+      minimumFontSizeElement.css('background-color', 'black');
+      minimumFontSizeElement.val(settings.minimumFontSize);
+      /* on change, update the settings value appropriately */
+      /* Project Technique: Capturing and handling events */
+      minimumFontSizeElement.change(function(){
+      		 settings.minimumFontSize = $(this).val();
+           updateMinimumFontSize();
+           saveSettings();
+      });
+      /* Add the element to the settings form */
+      settingsForm.append(minimumFontSizeElement);
+      
+      /* Create a background reading selection Color element */
+      settingsForm.append('<br>Read-along Selection:  ');
+      var backgroundReadingSelectionColorElement = $('<input type=\'color\'>');
+      backgroundReadingSelectionColorElement.val(settings.backgroundReadingSelectionColor);
+      /* on change, update the settings value appropriately */
+      /* Project Technique: Capturing and handling events */
+      backgroundReadingSelectionColorElement.change(function(){
+      		 settings.backgroundReadingSelectionColor = $(this).val();
+      });
+      /* Add the element to the settings form */
+      settingsForm.append(backgroundReadingSelectionColorElement);
+      
+      /* Create a text reading selection color element */
+      settingsForm.append('<br>Read-along Text:  ');
+      var textReadingSelectionColorElement = $('<input type=\'color\'>');
+      textReadingSelectionColorElement.val(settings.textReadingSelectionColor);
+      /* on change, update the settings value appropriately */
+      /* Project Technique: Capturing and handling events */
+      textReadingSelectionColorElement.change(function(){
+      		 settings.textReadingSelectionColor = $(this).val();
+           saveSettings();
+      });
+      /* Add the element to the settings form */
+      settingsForm.append(textReadingSelectionColorElement);
+      
+      /* Create a quit element that stops the speechSynthesis engine and reloads the page */
+      var quit = $('<br><br><a>Quit</a>');
+      /* Project Technique: Capturing and handling events */
+      quit.click(function(){
+      		speechSynthesis.cancel();
+          location.reload();
+      });
+      settingsForm.append(quit);
+      /* Append the form to the menu content area */
+      menuContent.append(settingsForm);
+
+      /* Add the menu to the web page */
+      $('body').prepend(menuContent);
+      
+      $('#settings-form *').css('color', 'white');
+      stop.css('color', 'red');
+      quit.css({'color': 'red'});
+      $('#sidenav *').addClass('ignore');
+      $('#sidenav').addClass('ignore');
+      
+      /* Settings menu FINISH */
+      
+      /* Now iterate through each element, splitting the sentences into their
+         own spans, marking their ids iteratively */
+      var sentenceCount = 0;
+      function addSentence(target) {
+         if(target.parent().hasClass('sentence')){
+         		console.log(target + ' parent has sentence already, skipping...');
+            return;
+         }
+      	 target.find('sup').remove();
+         target.find('script').remove();
+         /* Project Technique: DOM element creation, deletion or modification */
+      	 target.addClass('sentence');
+         target.attr('sentence-id', sentenceCount++);
+      }
+      
+      /* for each relevant visible element on the page, update add a sentence class */
+      /* Project Technique: DOM traversal */
+      $('body * p:visible, h1:visible, h2:visible, h3:visible, h4:visible, h5:visible, h6:visible, ul:visible, ol:visible, td:visible').not('.ignore').not('script').each(function(){
+         addSentence($(this));
+      });
+     
+      /* On mouse hover, highlight the current sentence */
+      /* Project Technique: Capturing and handling events */
+      $('.sentence').mouseover(function() {
+        $(this).css('background-color', '#c9fcf3');
+      });
+      
+      /* On mouse leave, unhighlight the current sentence */
+      /* Project Technique: Capturing and handling events */
+      $('.sentence').mouseleave(function() {
+        if($(this).attr('sentence-id') === currentReadingSentence) {
+        	$(this).css('background-color', settings.backgroundReadingSelectionColor);
+        } else {
+          $(this).css('background-color', '');
+        }
+      });
+     
+      /* Load up all of the voices from the speech api into the settings form element */
+      var voices = speechSynthesis.getVoices();
+      var interval = setInterval(function () {
+          voices = speechSynthesis.getVoices();
+          if (voices.length) clearInterval(interval); else return;
+
+          var $dropdown = $('#voices-dropdown');
+          $.each(voices, function(i, element) {
+              console.log(element);
+              $dropdown.append($('<option />').val(i).text(element.name));
+          });
+
+          if(settings && settings.voiceIndex < voices.length){
+            $dropdown.get(0).selectedIndex = settings.voiceIndex;
+          }
+
+      }, 10);
+
+      
+      var currentReadingSentence = -1;
+      /* When a sentence is double-clicked, initiate the speech engine to read it's contents */
+      $('.sentence').dblclick(function() {
+          speechSynthesis.cancel();
+          var first = parseInt($(this).attr('sentence-id'));
+          /* use the above id as a starting point to read sentences */
+          var ss = $('.sentence').filter(function(index){
+          	return parseInt($(this).attr('sentence-id')) >= first;
+          });
+          /* iterate through each sentence from the double-clicked sentence, going forward */
+          ss.each(function() {
+              var sent = $(this);
+              var phrases = $(this).text().replace(/([.?!\r\n])/g, '$1|').split('|');
+              /* Project Technique: Closures */
+              $.each(phrases, (i, v) => {
+                    if (debug) {
+                        /*	console.log($(this)); */
+                        console.log('SPEAK [' + sent.attr('sentence-id') + ']:'  + v);
+                    } else {
+                        /* Create a new Speech Synthesis Utterance and activate the speech api with the selected voice */
+                        var message = new SpeechSynthesisUtterance();
+                        message.voice = voices[$('#voices-dropdown').val()];
+                        message.text = v;
+                        /* Create a handler for when the speech synthesis begins talking */
+                        /* Project Technique: Capturing and handling events */
+                        message.onstart = function(event) {
+                        				stop.show();
+                                /* if autoscroll is enabled, check if this element is overflowing past the bottom of the window */
+                        				if(settings.autoscroll && checkOverFlowBottom(sent)){
+                                            /* autoscroll the selected page element to 100 pixels from the top of the view */
+	                                          $('html').stop().animate({
+	                                                scrollTop: sent.offset().top - 100
+	                                          }, 1000, function(){
+		                                          			/* Scroll Animation complete - highlight the reading text and increase font size if set */
+			                                                currentReadingSentence = sent.attr('sentence-id');
+			                                                sent.css('background-color', settings.backgroundReadingSelectionColor);
+			                                                sent.css('color', settings.textReadingSelectionColor);
+			                                                /* Increase font size */
+			                                                if(settings.increaseReadingFontSize) {
+			                                                    sent.css('font-size', '120%');
+			                                                }
+			                                            });
+                                      
+		                                } else {
+		                                          /* Highlight the reading text and increase font size if set */
+		                                          currentReadingSentence = sent.attr('sentence-id');
+		                                          sent.css('background-color', settings.backgroundReadingSelectionColor);
+		                                          sent.css('color', settings.textReadingSelectionColor);
+		                                          /* Increase font size */
+		                                          if(settings.increaseReadingFontSize) {
+		                                              sent.css('font-size', '120%');
+		                                          }
+		                                }
+                                
+                        };
+
+                        /* Create a handler for when the speechSynthesis stops talking */
+                        /* Project Technique: Capturing and handling events */
+                        message.onend = function(){
+                                /* unhighlight the current element */
+                                if(i === phrases.length-1) {
+                                  sent.css('background-color', '');
+                                  sent.css('color', '');
+                                  sent.css('font-size', '');
+                                  console.log('complete');
+                                  currentReadingSentence = -1;
+                                }
+                         };
+
+                         /* DO NOT REMOVE */
+                         setTimeout(function () {
+                            speechSynthesis.speak(message);
+                            console.log(message); 
+                         }, 1000);
+                    }
+                }); 
+        });
+      });
+      
+      /* This function checks if the target element flows off the bottom of the page or not */
+      function checkOverFlowBottom(target) {
+        return target.offset().top + target.height() >= $(window).scrollTop() + $(window).height();
+      }
+  
+  }
+);">OpenLexic</a>  <= drag me onto the toolbar!
+<br>To activate, navigate to a web page, click on the OpenLexic bookmarklet in the toolbar.
+<br>Double-clicking activates read-along mode. To deactivate, open the OpenLexic menu in the upper left hand side of the screen and click on the 'Stop speech' option.
+
+
+
